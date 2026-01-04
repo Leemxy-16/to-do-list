@@ -1,51 +1,112 @@
-
 const taskInput = document.getElementById('task-input');
 const addTaskBtn = document.getElementById('add-task-btn');
 const taskList = document.getElementById('task-list');
+const taskCategorySelect = document.getElementById('task-category');
 
-// Function to add a new task to the task list
+document.addEventListener('DOMContentLoaded', getLocalTasks);
+
 function addTask() {
-    // 1. Get the task text from the input field and trim whitespace
     const taskText = taskInput.value.trim();
+    const taskCategory = taskCategorySelect.value;
+    
+    // Capture the START TIME
+    const now = new Date();
+    const startTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-    // Check if the input is empty
-    if (taskText === "") {
-        alert("Please enter a task!");
-        return; // Exit the function if no task is entered
+    if (taskText === "" || taskCategory === "none") {
+        alert("Please enter a task and select a category!");
+        return;
     }
 
-    
+    const taskObject = {
+        text: taskText,
+        category: taskCategory,
+        startTime: startTime,
+        finishTime: null, // Empty until marked done
+        completed: false
+    };
+
+    createTaskElement(taskObject);
+    saveToLocalStorage(taskObject);
+
+    taskInput.value = '';
+    taskCategorySelect.value = 'none';
+}
+
+function createTaskElement(task) {
     const listItem = document.createElement('li');
-    
-    // Set the content of the list item to the task text
-    // The innerHTML includes the task text and the delete button
+    if (task.completed) listItem.classList.add('completed');
+
     listItem.innerHTML = `
-        <span>${taskText}</span>
-        <button class="delete-btn">X</button>
+        <div class="task-content">
+            <div class="task-meta">
+                <span class="task-category-label">${task.category}</span>
+                <span class="time-stamp">Started: ${task.startTime}</span>
+                <span class="finish-stamp">${task.finishTime ? 'Finished: ' + task.finishTime : ''}</span>
+            </div>
+            <span class="task-text">${task.text}</span>
+        </div>
+        <div class="task-actions">
+            <button class="complete-btn">${task.completed ? 'Undo' : 'Done'}</button>
+            <button class="delete-btn">X</button>
+        </div>
     `;
 
-    // 3. Add an event listener to the delete button to remove the task when clicked
-    const deleteButton = listItem.querySelector('.delete-btn');
-    deleteButton.addEventListener('click', () => {
-        taskList.removeChild(listItem);
+    const completeBtn = listItem.querySelector('.complete-btn');
+    const finishSpan = listItem.querySelector('.finish-stamp');
+
+    // DONE BUTTON LOGIC
+    completeBtn.addEventListener('click', () => {
+        const isCompleting = !listItem.classList.contains('completed');
+        listItem.classList.toggle('completed');
+        
+        let finalTime = null;
+        if (isCompleting) {
+            finalTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            finishSpan.innerText = `Finished: ${finalTime}`;
+            completeBtn.innerText = 'Undo';
+        } else {
+            finishSpan.innerText = '';
+            completeBtn.innerText = 'Done';
+        }
+        
+        updateTaskInLocal(task.text, isCompleting, finalTime);
     });
 
+    listItem.querySelector('.delete-btn').addEventListener('click', () => {
+        listItem.remove();
+        removeFromLocalStorage(task.text);
+    });
 
     taskList.appendChild(listItem);
-
-    // 4. Clear the input field after adding the task
-    taskInput.value = '';
-    
-    // 5. Optionally, set focus back to the input field for convenience
-    taskInput.focus(); 
 }
-// 2. Attach an event listener to the "Add Task" button to call addTask function on click
-addTaskBtn.addEventListener('click', addTask);
 
-// Optional: Allow adding task by pressing 'Enter' key in the input field
-taskInput.addEventListener('keypress', (event) => {
-    // KeyCode 13 is the 'Enter' key. 'key' property is often preferred.
-    if (event.key === 'Enter') {
-        addTask();
-    }
-});
+// --- LOCAL STORAGE HELPERS ---
+function saveToLocalStorage(task) {
+    let tasks = localStorage.getItem('tasks') ? JSON.parse(localStorage.getItem('tasks')) : [];
+    tasks.push(task);
+    localStorage.setItem('tasks', JSON.stringify(tasks));
+}
+
+function getLocalTasks() {
+    let tasks = localStorage.getItem('tasks') ? JSON.parse(localStorage.getItem('tasks')) : [];
+    tasks.forEach(task => createTaskElement(task));
+}
+
+function removeFromLocalStorage(taskText) {
+    let tasks = JSON.parse(localStorage.getItem('tasks'));
+    localStorage.setItem('tasks', JSON.stringify(tasks.filter(t => t.text !== taskText)));
+}
+
+function updateTaskInLocal(taskText, isDone, fTime) {
+    let tasks = JSON.parse(localStorage.getItem('tasks'));
+    tasks.forEach(t => {
+        if(t.text === taskText) {
+            t.completed = isDone;
+            t.finishTime = fTime;
+        }
+    });
+    localStorage.setItem('tasks', JSON.stringify(tasks));
+}
+
+addTaskBtn.addEventListener('click', addTask);
