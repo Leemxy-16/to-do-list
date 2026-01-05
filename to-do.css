@@ -3,24 +3,29 @@ body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     display: flex;
     justify-content: center;
-    padding: 50px 20px;
+    /* Responsive padding: 50px top/bottom for desktop, 20px for mobile */
+    padding: clamp(20px, 5vh, 50px) 15px;
     background-color: #f0f2f5;
     margin: 0;
+    min-height: 100vh;
+    box-sizing: border-box;
 }
 
 .todo-container {
     width: 100%;
     max-width: 550px; 
     background: #ffffff;
-    padding: 30px;
+    padding: clamp(15px, 4vw, 30px);
     border-radius: 12px;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+    box-sizing: border-box;
 }
 
 h1 {
     text-align: center;
     color: #1a202c;
     margin-bottom: 25px;
+    font-size: clamp(1.5rem, 5vw, 2rem);
 }
 
 /* Input Section */
@@ -47,6 +52,7 @@ h1 {
     font-size: 16px;
     outline: none;
     transition: border-color 0.2s;
+    min-width: 0; /* Prevents input from overflowing flex container */
 }
 
 #task-input:focus {
@@ -62,6 +68,7 @@ h1 {
     font-weight: bold;
     cursor: pointer;
     transition: background 0.3s;
+    white-space: nowrap;
 }
 
 #add-task-btn:hover {
@@ -84,6 +91,7 @@ h1 {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 15px;
     transition: transform 0.2s, box-shadow 0.2s;
 }
 
@@ -92,11 +100,12 @@ h1 {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
-/* Task Content (Time, Category, Text) */
+/* Task Content */
 .task-content {
     display: flex;
     flex-direction: column;
     gap: 4px;
+    flex: 1; /* Allow content to take available space */
 }
 
 .task-time {
@@ -119,7 +128,7 @@ h1 {
 .task-text {
     font-size: 1rem;
     color: #2d3748;
-    word-break: break-all;
+    word-break: break-word; /* Better for long text on mobile */
 }
 
 /* Completion States */
@@ -138,33 +147,53 @@ h1 {
 .task-actions {
     display: flex;
     gap: 8px;
+    flex-shrink: 0; /* Prevent buttons from squishing */
 }
 
-.complete-btn {
-    background-color: #4299e1;
-    color: white;
-    border: none;
+.complete-btn, .delete-btn {
     padding: 8px 12px;
     border-radius: 6px;
     font-size: 0.85rem;
     cursor: pointer;
-    transition: opacity 0.2s;
-}
-
-.complete-btn:hover {
-    opacity: 0.8;
-}
-
-.delete-btn {
-    background-color: #f56565;
-    color: white;
     border: none;
-    padding: 8px 12px;
-    border-radius: 6px;
-    font-size: 0.85rem;
-    cursor: pointer;
+    color: white;
 }
 
-.delete-btn:hover {
-    background-color: #c53030;
+.complete-btn { background-color: #4299e1; }
+.delete-btn { background-color: #f56565; }
+
+.complete-btn:hover { opacity: 0.8; }
+.delete-btn:hover { background-color: #c53030; }
+
+/* --- RESPONSIVE BREAKPOINTS --- */
+
+/* Small Tablets & Large Phones */
+@media (max-width: 600px) {
+    .input-area {
+        flex-wrap: wrap; /* Allow elements to wrap if needed */
+    }
+}
+
+/* Mobile Devices */
+@media (max-width: 480px) {
+    .input-area {
+        flex-direction: column; /* Stack input elements vertically */
+    }
+
+    #task-category, #add-task-btn {
+        width: 100%;
+    }
+
+    #task-list li {
+        flex-direction: column; /* Stack text and buttons */
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .task-actions {
+        width: 100%;
+        justify-content: flex-end; /* Align buttons to the right */
+        border-top: 1px solid #edf2f7;
+        padding-top: 10px;
+    }
 }
