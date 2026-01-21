@@ -1,30 +1,39 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>To Do List</title>
-  <link rel="stylesheet" href="to-do.css"/>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pro To-Do List</title>
+  <link rel="stylesheet" href="to-do.css">
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.2/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.2/firebase-messaging.js"></script>
 </head>
 <body>
   <div class="container">
-    <h1>My Tasks</h1>
+    <h1>Pro To-Do List</h1>
 
     <div id="error-msg" class="error-msg"></div>
 
     <div class="add-section">
-      <input type="text" id="taskInput" placeholder="Add a task" />
+      <input type="text" id="taskInput" placeholder="Add a task">
       <select id="categorySelect">
         <option value="">Select category</option>
         <option value="Work">Work</option>
         <option value="Personal">Personal</option>
         <option value="Study">Study</option>
       </select>
+      <div class="time-inputs">
+        <label>Start: <input type="datetime-local" id="startTimeInput"></label>
+        <label>End: <input type="datetime-local" id="endTimeInput"></label>
+      </div>
       <button id="addBtn">Add</button>
     </div>
 
+    <button id="toggleHistoryBtn">View History</button>
+
     <div id="tasksContainer" class="tasks-container"></div>
+    <div id="historyContainer" class="tasks-container" style="display: none;"></div>
   </div>
 
   <script src="todo.js"></script>
