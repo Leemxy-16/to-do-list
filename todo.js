@@ -283,7 +283,7 @@ setInterval(checkNotifications, 60000); // Check every minute
 // service-worker.js (add this new file in the same directory)
 
 const firebaseConfig = {
-    apiKey: "AIzaSyB63wXaLKqfb0KmAqes289YBd13UkBODb0",
+  apiKey: "AIzaSyB63wXaLKqfb0KmAqes289YBd13UkBODb0",
   authDomain: "todo-list-9b237.firebaseapp.com",
   projectId: "todo-list-9b237",
   storageBucket: "todo-list-9b237.firebasestorage.app",
