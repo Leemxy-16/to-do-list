@@ -1,18 +1,3 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
-import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-messaging.js";
-
-const firebaseConfig = {
-    apiKey: "",
-    authDomain: "",
-    projectId: "",
-    storageBucket: "",
-    messagingSenderId: "",
-    appId: ""
-};
-
-const app = initializeApp(firebaseConfig);
-const messaging = getMessaging(app);
-
 const taskInput = document.getElementById('taskInput');
 const categorySelect = document.getElementById('categorySelect');
 const startTimeInput = document.getElementById('startTimeInput');
@@ -24,24 +9,22 @@ const historyContainer = document.getElementById('historyContainer');
 const errorMsg = document.getElementById('error-msg');
 
 let showingHistory = false;
+let notificationPermission = false;
 
 async function requestNotificationPermission() {
-  const permission = await Notification.requestPermission();
-  if (permission === 'granted') {
-    try {
-      const token = await getToken(messaging, { vapidKey: 'YOUR_VAPID_PUBLIC_KEY' });
-      if (token) console.log('FCM Token:', token);
-    } catch (err) {
-      console.error('Token error:', err);
-    }
+  if (Notification.permission === 'granted') {
+    notificationPermission = true;
+  } else if (Notification.permission !== 'denied') {
+    const permission = await Notification.requestPermission();
+    notificationPermission = permission === 'granted';
   }
 }
 
-onMessage(messaging, (payload) => {
-  const title = payload.notification?.title || 'Task Reminder';
-  const options = { body: payload.notification?.body || 'You have a pending task!' };
-  new Notification(title, options);
-});
+function showNotification(title, body) {
+  if (notificationPermission) {
+    new Notification(title, { body });
+  }
+}
 
 function saveTasks(tasks) {
   localStorage.setItem('tasks', JSON.stringify(tasks));
@@ -71,10 +54,9 @@ function formatTime(isoString) {
   }).replace(/,/, '');
 }
 
-function renderTasks(container, tasks, isHistory = false) {
+function renderTasks(container, tasks, isHistory = false, categoryOrder) {
   container.innerHTML = '';
   const grouped = {};
-  const categoryOrder = ['Work', 'Personal', 'Study'];
 
   tasks.forEach((task, index) => {
     const cat = task.category || 'Uncategorized';
@@ -89,7 +71,9 @@ function renderTasks(container, tasks, isHistory = false) {
     }
   });
 
-  Object.keys(grouped).forEach(cat => createGroup(container, cat, grouped[cat], isHistory));
+  Object.keys(grouped).forEach(cat => {
+    createGroup(container, cat, grouped[cat], isHistory);
+  });
 }
 
 function createGroup(container, category, items, isHistory) {
@@ -107,11 +91,13 @@ function createGroup(container, category, items, isHistory) {
   items.forEach(({ task, index }) => {
     const li = document.createElement('li');
     li.className = 'task-item';
+    li.dataset.index = index;
 
     if (!isHistory) {
       const check = document.createElement('div');
       check.className = `checkbox ${task.done ? 'checked' : ''}`;
       check.addEventListener('click', () => toggleDone(index));
+
       li.appendChild(check);
     }
 
@@ -125,11 +111,13 @@ function createGroup(container, category, items, isHistory) {
     const times = document.createElement('div');
     times.className = 'task-times';
     times.innerHTML = `
-      <span class="time-label">Start:</span> ${formatTime(task.startTime)}<br>
-      <span class="time-label">End:</span> ${formatTime(task.endTime)}
+      <span class="time-label">Start:</span> ${formatTime(task.startTime)}
+      <br><span class="time-label">End:</span> ${formatTime(task.endTime)}
     `;
 
-    content.append(text, times);
+    content.appendChild(text);
+    content.appendChild(times);
+
     li.appendChild(content);
 
     if (isHistory) {
@@ -149,6 +137,7 @@ function createGroup(container, category, items, isHistory) {
       delBtn.className = 'delete-btn';
       delBtn.textContent = 'Delete';
       delBtn.addEventListener('click', () => deleteTask(index));
+
       li.appendChild(delBtn);
     }
 
@@ -164,12 +153,12 @@ function updateView() {
     tasksContainer.style.display = 'none';
     historyContainer.style.display = 'block';
     toggleHistoryBtn.textContent = 'View Active Tasks';
-    renderTasks(historyContainer, getDeletedTasks(), true);
+    renderTasks(historyContainer, getDeletedTasks(), true, ['Work', 'Personal', 'Study']);
   } else {
     tasksContainer.style.display = 'block';
     historyContainer.style.display = 'none';
     toggleHistoryBtn.textContent = 'View History';
-    renderTasks(tasksContainer, getTasks(), false);
+    renderTasks(tasksContainer, getTasks(), false, ['Work', 'Personal', 'Study']);
   }
 }
 
@@ -201,7 +190,6 @@ function addTask() {
     startTime: new Date(startTime).toISOString(),
     endTime: new Date(endTime).toISOString()
   });
-
   saveTasks(tasks);
 
   taskInput.value = '';
@@ -250,6 +238,30 @@ function permDeleteTask(index) {
   updateView();
 }
 
+function checkNotifications() {
+  const tasks = getTasks();
+  const now = new Date().getTime();
+
+  tasks.forEach(task => {
+    if (task.done) return;
+
+    const end = new Date(task.endTime).getTime();
+    const tenMinBefore = end - 10 * 60 * 1000;
+
+    if (now >= tenMinBefore && now < end && !task.notifiedBefore) {
+      showNotification('Task Reminder', `Task "${task.text}" is due in 10 minutes!`);
+      task.notifiedBefore = true;
+      saveTasks(tasks);
+    }
+
+    if (now >= end && !task.notifiedExact) {
+      showNotification('Task Due', `Task "${task.text}" is due now!`);
+      task.notifiedExact = true;
+      saveTasks(tasks);
+    }
+  });
+}
+
 addBtn.addEventListener('click', addTask);
 
 taskInput.addEventListener('keydown', e => {
@@ -266,3 +278,31 @@ toggleHistoryBtn.addEventListener('click', () => {
 
 requestNotificationPermission();
 updateView();
+setInterval(checkNotifications, 60000); // Check every minute
+
+// service-worker.js (add this new file in the same directory)
+
+const firebaseConfig = {
+    apiKey: "AIzaSyB63wXaLKqfb0KmAqes289YBd13UkBODb0",
+    authDomain: "todo-list-9b237.firebaseapp.com",
+    projectId: "todo-list-9b237",
+    storageBucket: "todo-list-9b237.firebasestorage.app",
+    messagingSenderId: "255725067990",
+    appId: "1:255725067990:web:392b899c69f1b07bc27377"
+  };
+  
+  importScripts('https://www.gstatic.com/firebasejs/10.7.2/firebase-app.js');
+  importScripts('https://www.gstatic.com/firebasejs/10.7.2/firebase-messaging.js');
+  
+  firebase.initializeApp(firebaseConfig);
+  const messaging = firebase.messaging();
+  
+  messaging.onBackgroundMessage((payload) => {
+    const notificationTitle = payload.notification.title;
+    const notificationOptions = {
+      body: payload.notification.body,
+      icon: '/icon.png' // Optional: add an icon
+    };
+  
+    self.registration.showNotification(notificationTitle, notificationOptions);
+  });
