@@ -2,12 +2,12 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebas
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-messaging.js";
 
 const firebaseConfig = {
-    apiKey: "AIzaSyB63wXaLKqfb0KmAqes289YBd13UkBODb0",
-    authDomain: "todo-list-9b237.firebaseapp.com",
-    projectId: "todo-list-9b237",
-    storageBucket: "todo-list-9b237.firebasestorage.app",
-    messagingSenderId: "255725067990",
-    appId: "1:255725067990:web:392b899c69f1b07bc27377"
+    apiKey: "",
+    authDomain: "",
+    projectId: "",
+    storageBucket: "",
+    messagingSenderId: "",
+    appId: ""
 };
 
 const app = initializeApp(firebaseConfig);
