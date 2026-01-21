@@ -283,13 +283,12 @@ setInterval(checkNotifications, 60000); // Check every minute
 // service-worker.js (add this new file in the same directory)
 
 const firebaseConfig = {
-    apiKey: "BPu8UFN58a_rCCWAbivLXOpYuX2xu1fYjPtopdzbcF9mB4TXkUsvWv52TUimMTYU4SPO13tdnZjGmYYEDUBSwdM",
-    authDomain: "todo-list-9b237.firebaseapp.com",
-    projectId: "todo-list-9b237",
-    storageBucket: "todo-list-9b237.appspot.com",
-    messagingSenderId: "255725067990",
-    appId: "YOUR_APP_ID",
-    measurementId: "YOUR_MEASUREMENT_ID"
+    apiKey: "AIzaSyB63wXaLKqfb0KmAqes289YBd13UkBODb0",
+  authDomain: "todo-list-9b237.firebaseapp.com",
+  projectId: "todo-list-9b237",
+  storageBucket: "todo-list-9b237.firebasestorage.app",
+  messagingSenderId: "255725067990",
+  appId: "1:255725067990:web:392b899c69f1b07bc27377"
   };
   
   importScripts('https://www.gstatic.com/firebasejs/10.7.2/firebase-app.js');
