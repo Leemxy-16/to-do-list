@@ -1,112 +1,163 @@
-const taskInput = document.getElementById('task-input');
-const addTaskBtn = document.getElementById('add-task-btn');
-const taskList = document.getElementById('task-list');
-const taskCategorySelect = document.getElementById('task-category');
+const taskInput = document.getElementById("taskInput");
+const categorySelect = document.getElementById("categorySelect");
+const addBtn = document.getElementById("addBtn");
+const tasksContainer = document.getElementById("tasksContainer");
+const errorMsg = document.getElementById("error-msg");
 
-document.addEventListener('DOMContentLoaded', getLocalTasks);
-
-function addTask() {
-    const taskText = taskInput.value.trim();
-    const taskCategory = taskCategorySelect.value;
-    
-    // Capture the START TIME
-    const now = new Date();
-    const startTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-    if (taskText === "" || taskCategory === "none") {
-        alert("Please enter a task and select a category!");
-        return;
-    }
-
-    const taskObject = {
-        text: taskText,
-        category: taskCategory,
-        startTime: startTime,
-        finishTime: null, // Empty until marked done
-        completed: false
-    };
-
-    createTaskElement(taskObject);
-    saveToLocalStorage(taskObject);
-
-    taskInput.value = '';
-    taskCategorySelect.value = 'none';
+function saveTasks(tasks) {
+  localStorage.setItem("myTasks", JSON.stringify(tasks));
 }
 
-function createTaskElement(task) {
-    const listItem = document.createElement('li');
-    if (task.completed) listItem.classList.add('completed');
+function getTasks() {
+  return JSON.parse(localStorage.getItem("myTasks")) || [];
+}
 
-    listItem.innerHTML = `
-        <div class="task-content">
-            <div class="task-meta">
-                <span class="task-category-label">${task.category}</span>
-                <span class="time-stamp">Started: ${task.startTime}</span>
-                <span class="finish-stamp">${task.finishTime ? 'Finished: ' + task.finishTime : ''}</span>
-            </div>
-            <span class="task-text">${task.text}</span>
-        </div>
-        <div class="task-actions">
-            <button class="complete-btn">${task.completed ? 'Undo' : 'Done'}</button>
-            <button class="delete-btn">X</button>
-        </div>
+function formatTime(isoString) {
+  if (!isoString) return "";
+  const date = new Date(isoString);
+  return date.toLocaleString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  }).replace(/,/, '');
+}
+
+function renderTasks() {
+  tasksContainer.innerHTML = "";
+  const tasks = getTasks();
+
+  const categories = ["Work", "Personal", "Study"];
+  const grouped = {};
+
+  tasks.forEach((task, index) => {
+    const cat = task.category || "Uncategorized";
+    if (!grouped[cat]) grouped[cat] = [];
+    grouped[cat].push({ task, index });
+  });
+
+  categories.forEach(cat => {
+    if (grouped[cat]) {
+      createGroup(cat, grouped[cat]);
+      delete grouped[cat];
+    }
+  });
+
+  Object.keys(grouped).forEach(cat => createGroup(cat, grouped[cat]));
+}
+
+function createGroup(category, items) {
+  const group = document.createElement("div");
+  group.className = "category-group";
+
+  const header = document.createElement("div");
+  header.className = "category-header";
+  header.textContent = category;
+  group.appendChild(header);
+
+  const list = document.createElement("ul");
+  list.className = "task-list";
+
+  items.forEach(({ task, index }) => {
+    const li = document.createElement("li");
+    li.className = "task-item";
+    li.dataset.index = index;
+
+    const check = document.createElement("div");
+    check.className = `checkbox ${task.done ? "checked" : ""}`;
+    check.addEventListener("click", () => toggleDone(index));
+
+    const content = document.createElement("div");
+    content.className = "task-content";
+
+    const text = document.createElement("span");
+    text.className = `task-text ${task.done ? "done" : ""}`;
+    text.textContent = task.text;
+
+    const times = document.createElement("div");
+    times.className = "task-times";
+    times.innerHTML = `
+      <span class="time-label">Started:</span> ${formatTime(task.startTime)}
+      ${task.endTime ? `<br><span class="time-label">Ended:</span> ${formatTime(task.endTime)}` : ""}
     `;
 
-    const completeBtn = listItem.querySelector('.complete-btn');
-    const finishSpan = listItem.querySelector('.finish-stamp');
+    content.appendChild(text);
+    content.appendChild(times);
 
-    // DONE BUTTON LOGIC
-    completeBtn.addEventListener('click', () => {
-        const isCompleting = !listItem.classList.contains('completed');
-        listItem.classList.toggle('completed');
-        
-        let finalTime = null;
-        if (isCompleting) {
-            finalTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            finishSpan.innerText = `Finished: ${finalTime}`;
-            completeBtn.innerText = 'Undo';
-        } else {
-            finishSpan.innerText = '';
-            completeBtn.innerText = 'Done';
-        }
-        
-        updateTaskInLocal(task.text, isCompleting, finalTime);
-    });
+    const delBtn = document.createElement("button");
+    delBtn.className = "delete-btn";
+    delBtn.textContent = "×";
+    delBtn.addEventListener("click", () => deleteTask(index));
 
-    listItem.querySelector('.delete-btn').addEventListener('click', () => {
-        listItem.remove();
-        removeFromLocalStorage(task.text);
-    });
+    li.append(check, content, delBtn);
+    list.appendChild(li);
+  });
 
-    taskList.appendChild(listItem);
+  group.appendChild(list);
+  tasksContainer.appendChild(group);
 }
 
-// --- LOCAL STORAGE HELPERS ---
-function saveToLocalStorage(task) {
-    let tasks = localStorage.getItem('tasks') ? JSON.parse(localStorage.getItem('tasks')) : [];
-    tasks.push(task);
-    localStorage.setItem('tasks', JSON.stringify(tasks));
+function addTask() {
+  const text = taskInput.value.trim();
+  const category = categorySelect.value.trim();
+
+  if (!text || !category) {
+    errorMsg.textContent = !text ? "Enter a task" : "Select a category";
+    errorMsg.style.display = "block";
+    setTimeout(() => errorMsg.style.display = "none", 3000);
+    return;
+  }
+
+  const now = new Date().toISOString();
+
+  const tasks = getTasks();
+  tasks.push({
+    text,
+    category,
+    done: false,
+    startTime: now,
+    endTime: null
+  });
+
+  saveTasks(tasks);
+
+  taskInput.value = "";
+  categorySelect.value = "";
+
+  renderTasks();
 }
 
-function getLocalTasks() {
-    let tasks = localStorage.getItem('tasks') ? JSON.parse(localStorage.getItem('tasks')) : [];
-    tasks.forEach(task => createTaskElement(task));
+function toggleDone(index) {
+  const tasks = getTasks();
+  const task = tasks[index];
+
+  if (!task.done) {
+    task.endTime = new Date().toISOString();
+  } else {
+    task.endTime = null; // optional: keep historical end time if you prefer
+  }
+
+  task.done = !task.done;
+  saveTasks(tasks);
+  renderTasks();
 }
 
-function removeFromLocalStorage(taskText) {
-    let tasks = JSON.parse(localStorage.getItem('tasks'));
-    localStorage.setItem('tasks', JSON.stringify(tasks.filter(t => t.text !== taskText)));
+function deleteTask(index) {
+  const tasks = getTasks();
+  tasks.splice(index, 1);
+  saveTasks(tasks);
+  renderTasks();
 }
 
-function updateTaskInLocal(taskText, isDone, fTime) {
-    let tasks = JSON.parse(localStorage.getItem('tasks'));
-    tasks.forEach(t => {
-        if(t.text === taskText) {
-            t.completed = isDone;
-            t.finishTime = fTime;
-        }
-    });
-    localStorage.setItem('tasks', JSON.stringify(tasks));
-}
+addBtn.addEventListener("click", addTask);
 
-addTaskBtn.addEventListener('click', addTask);
+taskInput.addEventListener("keydown", e => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    addTask();
+  }
+});
+
+// Initial render
+renderTasks();
